@@ -1,7 +1,34 @@
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/sdk/trace/exporter.h"
+#include "opentelemetry/sdk/trace/processor.h"
+#include "opentelemetry/sdk/trace/simple_processor_factory.h"
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include "opentelemetry/trace/provider.h"
+
 #include <chrono>
 #include <thread>
 #include <iostream>
 #include <random>
+
+
+namespace trace_api = opentelemetry::trace;
+namespace trace_sdk = opentelemetry::sdk::trace;
+namespace trace_exporter = opentelemetry::exporter::trace;
+
+namespace {
+  void InitTracer() {
+    auto exporter  = trace_exporter::OStreamSpanExporterFactory::Create();
+    auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+    std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
+      trace_sdk::TracerProviderFactory::Create(std::move(processor));
+    //set the global trace provider
+    trace_api::Provider::SetTracerProvider(provider);
+  }
+  void CleanupTracer() {
+    std::shared_ptr<opentelemetry::trace::TracerProvider> none;
+    trace_api::Provider::SetTracerProvider(none);
+  }
+}
 
 int64_t get_random_duration_us() {
   return 10 + (std::rand() % 1000);
@@ -15,6 +42,7 @@ int64_t get_current_time_us() {
 void produce_past_logs() {
   while (true) {
     const int64_t duration = get_random_duration_us();
+
     const int64_t start = get_current_time_us();
     std::this_thread::sleep_for(std::chrono::microseconds(duration));
     const auto end = get_current_time_us();
@@ -24,19 +52,23 @@ void produce_past_logs() {
 }
 
 void produce_logs() {
+  auto tracer = opentelemetry::trace::Provider::GetTracerProvider()->GetTracer("my-app-tracer");
+
   while (true) {
     const int64_t duration = get_random_duration_us();
 
-    std::cerr << "[T1] start!" << std::endl;
+    auto span = tracer->StartSpan("[T1] Log");
     std::this_thread::sleep_for(std::chrono::microseconds(duration));
-    std::cerr << "[T1] end!" << std::endl;
+    span->End();
   }
 }
 
-int main( )
-{
+int main() {
+  InitTracer();
+
   std::thread producer(produce_past_logs);
   produce_logs();
 
+  CleanupTracer();
   return 0;
 }
