@@ -40,14 +40,22 @@ int64_t get_current_time_us() {
 }
 
 void produce_past_logs() {
+  auto tracer = opentelemetry::trace::Provider::GetTracerProvider()->GetTracer("my-app-tracer");
+
   while (true) {
     const int64_t duration = get_random_duration_us();
 
-    const int64_t start = get_current_time_us();
+    opentelemetry::common::SteadyTimestamp start;
     std::this_thread::sleep_for(std::chrono::microseconds(duration));
-    const auto end = get_current_time_us();
+    opentelemetry::common::SteadyTimestamp end;
 
-    std::cerr << "[T2] start: " << start << ", end: " << end << std::endl;
+    opentelemetry::trace::StartSpanOptions st;
+    st.start_steady_time = start;
+
+    opentelemetry::trace::EndSpanOptions ed;
+    ed.end_steady_time = end;
+
+    tracer->StartSpan("[T2] Log", st)->End(ed);
   }
 }
 
