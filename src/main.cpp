@@ -5,15 +5,17 @@
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 #include "opentelemetry/trace/provider.h"
 
+#include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
+
 #include <chrono>
 #include <thread>
 #include <iostream>
 #include <random>
 
 
-namespace trace_api = opentelemetry::trace;
-namespace trace_sdk = opentelemetry::sdk::trace;
-namespace trace_exporter = opentelemetry::exporter::trace;
+namespace trace_api        = opentelemetry::trace;
+namespace trace_sdk        = opentelemetry::sdk::trace;
+namespace trace_exporter   = opentelemetry::exporter::trace;
 
 namespace {
   void InitTracer() {
