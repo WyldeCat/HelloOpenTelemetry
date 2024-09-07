@@ -15,11 +15,14 @@
 
 namespace trace_api        = opentelemetry::trace;
 namespace trace_sdk        = opentelemetry::sdk::trace;
-namespace trace_exporter   = opentelemetry::exporter::trace;
+namespace otlp             = opentelemetry::exporter::otlp;
 
 namespace {
   void InitTracer() {
-    auto exporter  = trace_exporter::OStreamSpanExporterFactory::Create();
+    opentelemetry::exporter::otlp::OtlpGrpcExporterOptions opts;
+    opts.endpoint = "127.0.0.1:4317";
+    auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
+
     auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
     std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
       trace_sdk::TracerProviderFactory::Create(std::move(processor));
@@ -33,7 +36,7 @@ namespace {
 }
 
 int64_t get_random_duration_us() {
-  return 10 + (std::rand() % 1000);
+  return 1000000 + (std::rand() % 1000);
 }
 
 int64_t get_current_time_us() {
